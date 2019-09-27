@@ -6,3 +6,4 @@ Name=Transfer Tool
 Exec=feren-transfer-tool
 Type=Application
 Icon=feren-transfer-tool
+Categories=System;

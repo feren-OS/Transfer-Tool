@@ -241,6 +241,7 @@ class init():
                 #processinganimationstep += 1
         
     def toggle_bg_options(self, value):
+        #Set visibility of controls relating to BG Backup/Restore options to 'value' boolean
         self.togglebgbackup.set_visible(value)
         self.togglebgrestore.set_visible(value)
         self.togglebgrestore.set_sensitive(value)
@@ -250,44 +251,20 @@ class init():
         self.builder.get_object('bgrestorelabel').set_visible(value)
         
     def view_failed_files_gui(self, button):
+        #Clear the failed files list
         self.liststore.clear()
+        #Add the failed folder creations first to the list
         for file1 in self.failedfolders:
             self.liststore.append((file1, self.failedcopies[file1],))
+        #Add the failed file copies to the list
         for file1 in self.failedcopies:
             self.liststore.append((file1, self.failedcopies[file1],))
         
     def view_failed_files(self, button):
+        #Go to the Failed Files List and enable 'Back' if not enabled
         self.currentpage.set_visible_child(self.failedfilespage)
         self.backbtn.set_sensitive(True)
         
-    def goto_backupdata(self, button):
-        if self.togglealtbackupsource.get_state() == True:
-            self.check_checkboxes_backup(self.altbackupsource.get_filename())
-        else:
-            self.check_checkboxes_backup(os.path.expanduser("~"))
-        self.currentpage.set_visible_child(self.backupdatapage)
-        self.backbtn.set_sensitive(True)
-        
-    def goto_restoredata(self, button):
-        if self.restoresource.get_filename() is not None and os.path.exists(self.restorebackupsource):
-            self.check_checkboxes_restore(self.restorebackupsource)
-        
-        self.currentpage.set_visible_child(self.restoredatapage)
-        self.backbtn.set_sensitive(True)
-        
-    def goto_home(self, button):
-        if self.currentpage.get_visible_child() == self.failedfilespage:
-            self.currentpage.set_visible_child(self.alldonepage)
-        else:
-            self.currentpage.set_visible_child(self.homepagepage)
-            self.backbtn.set_sensitive(False)
-        
-    def goto_about(self, button):
-        self.about.show_all()
-        result = self.about.run()
-        self.about.hide()
-        
-    #Backup
     def backup_clear_checkboxes(self):
         self.togglehomebackup.set_active(False)
         self.toggledocsbackup.set_active(False)
@@ -299,6 +276,58 @@ class init():
         self.togglepfpbackup.set_active(False)
         self.togglebgbackup.set_active(False)
         
+    def goto_backupdata(self, button):
+        #Go to the 'Backup Data' page
+        #If an alternative backup source is turned ON when going to this page, check the checkboxes against what is in that directory
+        if self.togglealtbackupsource.get_state() == True and self.altbackupsource.get_filename() is not None:
+            self.check_checkboxes_backup(self.altbackupsource.get_filename())
+        elif self.togglealtbackupsource.get_state() == True:
+            self.backup_clear_checkboxes()
+        else:
+            #Otherwise check the checkboxes against $HOME / ~
+            self.check_checkboxes_backup(os.path.expanduser("~"))
+        self.currentpage.set_visible_child(self.backupdatapage)
+        #Enable the 'Back' button
+        self.backbtn.set_sensitive(True)
+        
+    def restore_clear_checkboxes(self):
+        #Clear all the checkboxes in Restore Data
+        self.togglehomerestore.set_active(False)
+        self.toggledocsrestore.set_active(False)
+        self.togglepicsrestore.set_active(False)
+        self.togglemusicrestore.set_active(False)
+        self.togglevideosrestore.set_active(False)
+        self.toggledownloadsrestore.set_active(False)
+        self.toggledesktoprestore.set_active(False)
+        self.togglepfprestore.set_active(False)
+        self.togglebgrestore.set_active(False)
+        
+    def goto_restoredata(self, button):
+        #If there is a chosen restore source, enable/disable the checkboxes in Restore according to what is and isn't in the backup
+        if self.restoresource.get_filename() is not None and os.path.exists(self.restorebackupsource):
+            self.check_checkboxes_restore(self.restorebackupsource)
+        else:
+            #Otherwise clear all the checkboxes in Restore
+            self.restore_clear_checkboxes()
+        #Go to the 'Restore Data' page and enable the 'Back' button
+        self.currentpage.set_visible_child(self.restoredatapage)
+        self.backbtn.set_sensitive(True)
+        
+    def goto_home(self, button):
+        #This is the 'Back' button code - if the user is on the 'Failed Files' list page, take them back to the 'All Done' page, otherwise take them to the 'Welcome' page
+        if self.currentpage.get_visible_child() == self.failedfilespage:
+            self.currentpage.set_visible_child(self.alldonepage)
+        else:
+            self.currentpage.set_visible_child(self.homepagepage)
+            self.backbtn.set_sensitive(False)
+        
+    def goto_about(self, button):
+        #Open the About dialog
+        self.about.show_all()
+        result = self.about.run()
+        self.about.hide()
+        
+    #Backup
     def check_checkboxes_backup(self, location):
         #Enable or disable checkboxes based on whether the files exist or not
         #'Home' exists regardless so enable that tickbox
@@ -356,6 +385,8 @@ class init():
         else:
             self.togglepfpbackup.set_sensitive(False)
             self.togglepfpbackup.set_active(False)
+        #Check for a desktop background file and enable/disable tickbox accordingly
+        #TODO: Support backing up Desktop Background on all supported Feren OS DEs
         if os.path.isfile(location+"/AppData/Roaming/Microsoft/Windows/Themes/TranscodedWallpaper") or os.path.isfile(location+"/AppData/Roaming/Microsoft/Windows/Themes/TranscodedWallpaper.jpg"):
             self.toggle_bg_options(True)
             self.togglebgbackup.set_active(True)
@@ -396,33 +427,47 @@ class init():
             
     def check_chosen_directory(self, directory, choosercontrol):
         if not choosercontrol.get_filename == self.changedchosendirectory:
+            #We will call on a Bash Script to do the handy-work for us in terms of choosing the directory in case of scenarios such as the user choosing a Windows Drive and therefore needing to let them choose which Users folder in there they'd like to backup from
+            #TODO: Make this part of the main GUI instead of a Zenity-powered external script
             chosendir = subprocess.run(['/usr/share/feren-transfer-tool/fix-directory-choice', str(directory)], stdout=subprocess.PIPE).stdout.decode('utf-8').split("\n")[0]
+            #Make a note of what the directory was last changed to by this script so that in future times it runs it won't do anything unless the chosen path has changed
             self.changedchosendirectory = chosendir
+            #Set the chosen folder in the Alt. Backup Source folder selector box to the newly chosen folder
             choosercontrol.set_filename(chosendir)
+            #Trigger another checkbox check with this change of Alt. Backup Source in mind
             self.backup_altsource_check(True)
         
     def altbackupsource_changed(self, chooser):
         #Call for when the folder selector for alternative backup source location has a new value
         self.backup_altsource_check(True)
+        #Trigger the above code for the reasons mentioned in the above code
         self.check_chosen_directory(self.altbackupsource.get_filename(), self.altbackupsource)
     
     def update_status(self, progressvalue, filecopying, category, categoryprogressvalue):
+        #Set the overall progress progress bar value to be the current overall progress
         self.overallprogress.set_fraction(progressvalue)
-        
+        #Set the 'Currently copying' text to the current file's path
         self.copyingstatustext.set_text(filecopying)
-        
+        #Set the 'Currently on' text to the current category being worked on
         self.backupcategorytext.set_visible_child(category)
-        
+        #Same as overallprogress.set_fraction but with the current category's progress instead
         self.itemscopyprogress.set_fraction(categoryprogressvalue)
         
     def set_window_closable(self, boolean):
+        #Set whether the window is closable or not depending on variable 'boolean'
         self.win.set_deletable(boolean)
         
     def finished_process(self, fileslistcount, target):
+        #...and then proceed not to use it here, ok then me... haven't checked if I did this intentionally because it caused a segfault or something yet so your guess is as good as mine
         self.win.set_deletable(True)
+        #Take the user to the 'All Done' page
         self.currentpage.set_visible_child(self.alldonepage)
+        #Re-enable the back button
         self.backbtn.set_sensitive(True)
         #Change page depending on self.failedcopies
+        # - If nothing failed to copy, we'll show the 'Everything copied' version of this page
+        # - If 10 or less files managed to copy while the rest didn't, we'll consider it a failed operation and show the 'Operation Failed' version of this page
+        # - Otherwise it's the 'All Done With Errors' version of this page
         if len(self.failedcopies) == 0:
             self.alldonepage.set_visible_child(self.builder.get_object('AllDoneSuccess'))
         elif len(self.failedcopies) >= (fileslistcount - 10):
@@ -435,10 +480,13 @@ class init():
             GLib.timeout_add(10, lambda: self.view_failed_files_gui(''))
         
     def copy_files(self, togglehome, toggledocs, togglepics, togglemusic, togglevideos, toggledownloads, toggledesktop, togglepfp, togglebg, source, target):
+        #Disable closing the window by the close button
         GLib.idle_add(lambda: self.set_window_closable(False))
         GLib.timeout_add(10, lambda: self.set_window_closable(False))
+        #Change the status to 'Preparing' on the Processing screen
         GLib.idle_add(lambda: self.update_status(0.0, "", self.prepcategorylblp, 0.0))
         GLib.timeout_add(10, lambda: self.update_status(0.0, "", self.prepcategorylblp, 0.0))
+        #Just some variable setting in case
         categorytype = self.prepcategorylblp
         categoryprogress = 0.0
         #Thread function to copy files
@@ -468,27 +516,32 @@ class init():
         self.downloadsfilestocopy = 0
         self.desktopfilestocopy = 0
         #Walk through the source directory
-        #TODO: Only follow symlinks in main directory, DON'T if they follow to places outside of main directory
-        #TODO: Add support for symlinking items that link to other places inside of main directory
-        #TODO: Tell user that symlinks inside of home directory subfolders won't be copied over (not supported yet) if symlinks inside main directory subdirectories are detected
+        #TODO: Maybe warn the user that later on in the code their Home will be hosed of all broken symlinks
         
         #See what directories are in the source directory
+        #Blank out these variables just in case first...
         folderstoscaninsource=[]
         filesinsource=[]
         for folder in os.listdir(source):
+            #If the item in the source folder is a symlink, we'll add it to the list of files to be copied from the source folder's main folder
             if os.path.islink(source+"/"+folder) and not folder.startswith(".") and togglehome == True:
                 filesinsource.append(folder)
             elif os.path.isdir(source+"/"+folder):
+                #Otherwise if it's a directory, we'll do some checks to make sure unwanted folders aren't copied when doing the real transfer process
                 if folder.startswith("."):
+                    #Exclude hidden directories
                     pass
                 elif togglehome == False and folder != (self.documentsfoldername) and folder != (self.picturesfoldername) and folder != (self.musicfoldername) and folder != (self.videosfoldername) and folder != (self.downloadsfoldername) and folder != (self.desktopfoldername):
+                    #If Home Folder is turned OFF and the folder found isn't any other category's folder, exclude it
                     pass
                 elif toggledocs == False and folder == (self.documentsfoldername):
+                    #Exclude Documents Folder if Documents is OFF
                     pass
-                elif folder == "PlayOnLinux's virtual drives" or folder == "AppData" or folder == "Searches" or folder == "Cookies" or folder == "Searches":
-                    #Exclude Windows User Folders
+                elif folder == "AppData" or folder == "Searches" or folder == "Cookies":
+                    #Exclude some folders including Windows User Folders
                     pass
                 elif togglepics == False and folder == (self.picturesfoldername):
+                    #...I think you get the point by now.
                     pass
                 elif togglemusic == False and folder == (self.musicfoldername):
                     pass
@@ -499,13 +552,16 @@ class init():
                 elif toggledesktop == False and folder == (self.desktopfoldername):
                     pass
                 elif not str(folder) in folderstoscaninsource:
+                    #The last exclusion is if it's not already added to the list
                     folderstoscaninsource.append(str(source+"/"+folder))
             elif os.path.isfile(source+"/"+folder) and not folder.startswith(".") and togglehome == True and not ((folder.startswith("NTUSER.DAT") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or (folder.startswith("ntuser.dat") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or folder == "ntuser.dat" or folder == "ntuser.ini"):
+                #If it's a file, however, isn't hidden and isn't a Windows System File, add it to the list of files in the source folder to copy over
                 filesinsource.append(folder)
         if togglepfp == True:
-            #Add user picture if enabled
+            #Add user picture if enabled to the files to copy from source folder
             filesinsource.append(".face")
         if togglehome == True or togglepfp == True:
+            #Only append Source Folder contents to the backup list if Home Folder or Profile Picture are ON
             backupfileslist[source] = filesinsource
         
         #Look through the folders found in source directory
@@ -516,10 +572,13 @@ class init():
                 for file1 in d:
                     if os.path.islink(r+"/"+file1):
                         backupfileslist[r].append(file1)
+                #Add count of files and links found to be copied in that folder to the overall files count
                 filestocopy += len(backupfileslist[r])
                 if r.startswith(source+"/"+self.documentsfoldername+"/") or r == (source+"/"+self.documentsfoldername):
+                    #If it's part of Documents, add the files and links found in there to the Documents files count
                     self.docsfilestocopy += len(backupfileslist[r])
                 elif r.startswith(source+"/"+self.picturesfoldername+"/") or r == (source+"/"+self.picturesfoldername):
+                    #...you get the idea with the rest of these.
                     self.picsfilestocopy += len(backupfileslist[r])
                 elif r.startswith(source+"/"+self.musicfoldername+"/") or r == (source+"/"+self.musicfoldername):
                     self.musicfilestocopy += len(backupfileslist[r])
@@ -535,26 +594,29 @@ class init():
         #Add filesdone variable for counting done files/folders
         filesdone = 0
         
-        #TODO: Make symlinks to folders be copied in the process
-        #Maybe make the directory scanning in source be used for scanning extra directories? It can see folder symlinks and all.
-        #r has the full directory path
+        #NOTE: r has the full directory path
+        #Clear the failedcopies and failedfolders lists in case
         self.failedcopies={}
         self.failedfolders={}
+        #For each folder in the overall list of folders and files to be copied over from source, make their destination folder counterpart
         for folder in backupfileslist:
             if not os.path.isdir(folder.replace(source, target)):
                 #Create folders on target if they don't exist
                 try:
                     os.makedirs(folder.replace(source, target))
                 except Exception as e:
+                    #If the folder failed to be created, store their source folder path and the reason for them failing in failedfolders for later
                     self.failedfolders[folder.replace(source, target)] = type(e).__name__
-        #Make a dictionary for listing the failed files
+        #For each file in the overall list of folders and files to be copied over from source, copy them to their location
         for folder in backupfileslist:
-            #Get list of files from Dict Value and iterate over it
             for file1 in backupfileslist[folder]:
                 if not file1 == "":
+                    #Update GUI Status to reflect what is being copied, etc.
                     GLib.idle_add(lambda: self.update_status((filesdone / filestocopy), (folder+"/"+file1).replace((source+"/"), ""), categorytype, categoryprogress))
                     GLib.timeout_add(10, lambda: self.update_status((filesdone / filestocopy), (folder+"/"+file1).replace((source+"/"), ""), categorytype, categoryprogress))
+                    #Set srcFile to the overall source file path
                     srcFile = os.path.join(folder, file1)
+                    #Set destFile to srcFile but with the destination directory instead of the source directory
                     destFile = srcFile.replace(source, target)
                     #Change status depending on category
                     if srcFile.startswith(source+"/"+self.documentsfoldername):
@@ -589,17 +651,21 @@ class init():
                         categorytype = self.homecategorylblp
                         categoryon = 0
                         categoryprogress = self.homeprogress
+                    #Delete symlinks where possible to prevent them from causing Transfer Tool to copy symlinks into symlinked folders on overwriting operations
                     try:
                         if os.path.islink(destFile):
                             try:
                                 os.remove(destFile)
                             except:
                                 pass
+                        #Copy the file
                         shutil.copy(srcFile, destFile, follow_symlinks=False)
                     except Exception as e:
+                        #If the file failed to copy, store the source file path and the reason for failing in failedcopies for later
                         self.failedcopies[srcFile] = type(e).__name__
+                    #Add one to the files done count
                     filesdone += 1
-                    #TODO: Fix the Copying Progress bar getting to 100% too fast
+                    #Do the same with the category-only files done count
                     if categoryon == 0:
                         self.homefilescopied += 1
                         if self.homefilestocopy != 0:
@@ -643,21 +709,24 @@ class init():
                         else:
                             self.desktopprogress = 1.0
                             
-        #Copy Windows BG
+        #Copy Windows BG if turned ON
         if togglebg:
-            print(target, os.path.expanduser("~"))
+            #Use a script to get the background copied
+            #If the operation is a Restore, also add an extra argument for applying the backed up BG automatically
             if target == os.path.expanduser("~"):
-                print("Restore")
+                #TODO: Put the script in this code instead
                 subprocess.Popen(["/usr/share/feren-transfer-tool/copy-bg", str(target), str(source), "--restore"])
             else:
                 subprocess.Popen(["/usr/share/feren-transfer-tool/copy-bg", str(target), str(source)])
         
         #Clean up .lnk and Thumbs.db files
+        #If the operation is a Restore, also hose the home folder of broken symlinks
         if target == os.path.expanduser("~"):
             print("Lost symlinks")
             subprocess.Popen(["/usr/share/feren-transfer-tool/cleanup-target", str(target), "--clear-lost-symlinks"])
         else:
             subprocess.Popen(["/usr/share/feren-transfer-tool/cleanup-target", str(target)])
+        #We're done, let's take the user to the 'All Done' page
         GLib.idle_add(lambda: self.finished_process(len(backupfileslist), target))
         GLib.timeout_add(10, lambda: self.finished_process(len(backupfileslist), target))
         
@@ -681,24 +750,34 @@ class init():
         self.bgbackupenabled = self.togglebgbackup.get_active()
         #Set backup path accordingly
         if self.altbackupsourceenabled:
+            #If Alternative Backup Source is turned on, let's change the source to the selected backup source location
             self.altbackupsourcelocat = self.altbackupsource.get_filename()
+            #Change the graphic on the bottom of Processing to the HD to HD graphic
             self.processinggraphic.set_visible_child(self.processinggraphic3)
         else:
+            #Otherwise, we'll set the source to the user's home folder path and change the graphic to the Feren OS to HD graphic
             self.altbackupsourcelocat = os.path.expanduser("~")
             self.processinggraphic.set_visible_child(self.processinggraphic2)
+        #Set the Backup Target location to be the one selected by the user
         self.backuptargetlocat = self.backuptarget.get_filename()
+        #If the folder isn't FerenTransferToolBackups, let's fix that fact
         if not self.backuptargetlocat.endswith("/FerenTransferToolBackups"):
             self.backuptargetlocat = (self.backuptargetlocat+"/FerenTransferToolBackups")
+        #If the backup target location folder doesn't exist, let's create it
         if not os.path.exists(self.backuptargetlocat):
             try:
                 os.makedirs(self.backuptargetlocat)
             except Exception as e:
-                #Show the error screen and put the folder as the failed file
+                #If this fails, we'll just abort operation, announce 'Operation Failed' and list the folder as a 'Failed File' on the 'Operation Failed' screen before taking the user there
+                #Clear the failedcopies dict.
                 self.failedcopies={}
+                #Append this failed folder to it and the error type
                 self.failedcopies[self.backuptargetlocat] = type(e).__name__
+                #Do as the top comment mentions
                 GLib.idle_add(lambda: self.finished_process(1, self.backuptargetlocat))
                 GLib.timeout_add(10, lambda: self.finished_process(1, self.backuptargetlocat))
                 return
+        #Make the Overwriting Notice visible for the next time the user goes to the 'Backup Data' screen now future backups on the current settings will overwrite their incoming backup
         self.builder.get_object('OverwritingNotice').set_visible(True)
         #Debugging information
         #print("Backup Home:", self.homebackupenabled)
@@ -712,10 +791,11 @@ class init():
         #print("Alt source:", self.altbackupsourceenabled)
         #print("Alt source:", self.altbackupsourcelocat)
         #print("Backup target:", self.backuptargetlocat)
-        #Change in-UI labels
+        #Change in-UI labels to show what the source and target locations are
         self.targetlocationtext.set_markup(self.backuptargetlocat)
         self.sourcelocationtext.set_markup(self.altbackupsourcelocat)
         
+        #Initiate the copying process
         self.thread = threading.Thread(target=self.copy_files,
                                   args=(self.homebackupenabled, self.docsbackupenabled, self.picsbackupenabled, self.musicbackupenabled, self.videobackupenabled, self.downloadsbackupenabled, self.desktopbackupenabled, self.pfpbackupenabled, self.bgbackupenabled, self.altbackupsourcelocat, self.backuptargetlocat))
         self.thread.start()
@@ -737,15 +817,19 @@ class init():
     def backuptarget_changed(self, button):
         #Call for when the backup target folder selector has a new value
         if os.path.isdir(self.backuptarget.get_filename() + "/FerenTransferToolBackups"):
+            #If the chosen area already has a backups folder in it, warn the user that doing a backup will overwrite that current backup
             self.builder.get_object('OverwritingNotice').set_visible(True)
         else:
             self.builder.get_object('OverwritingNotice').set_visible(False)
+        #Call earlier code in case all the checkboxes were unchecked or something during this process
         self.check_if_backup_possible()
         
     def backup_home_toggled(self, button):
+        #Check if the 'Backup Data' button can be used or not now with this checkbox change in mind
         self.check_if_backup_possible()
         
     def backup_docs_toggled(self, button):
+        #You get the point ^
         self.check_if_backup_possible()
         
     def backup_pics_toggled(self, button):
@@ -769,18 +853,7 @@ class init():
     def backup_bg_toggled(self, button):
         self.check_if_backup_possible()
         
-    #Restore
-    def restore_clear_checkboxes(self):
-        self.togglehomerestore.set_active(False)
-        self.toggledocsrestore.set_active(False)
-        self.togglepicsrestore.set_active(False)
-        self.togglemusicrestore.set_active(False)
-        self.togglevideosrestore.set_active(False)
-        self.toggledownloadsrestore.set_active(False)
-        self.toggledesktoprestore.set_active(False)
-        self.togglepfprestore.set_active(False)
-        self.togglebgrestore.set_active(False)
-        
+    #Restore      
     def check_checkboxes_restore(self, location):
         #Enable or disable checkboxes based on whether the files exist or not
         #'Home' exists regardless so enable that tickbox
@@ -837,6 +910,7 @@ class init():
         else:
             self.togglepfprestore.set_sensitive(False)
             self.togglepfprestore.set_active(False)
+        #Check for a backed up desktop background and enable/disable tickbox accordingly
         if os.path.isfile(location+"/TransferToolBackground"):
             self.toggle_bg_options(True)
             self.togglebgrestore.set_active(True)
@@ -899,6 +973,7 @@ class init():
         self.targetlocationtext.set_markup(self.restoretargetlocat)
         self.sourcelocationtext.set_markup(self.restoresourcelocat)
         
+        #Start the file copying process
         self.thread = threading.Thread(target=self.copy_files,
                                   args=(self.homerestoreenabled, self.docsrestoreenabled, self.picsrestoreenabled, self.musicrestoreenabled, self.videorestoreenabled, self.downloadsrestoreenabled, self.desktoprestoreenabled, self.pfprestoreenabled, self.bgrestoreenabled, self.restoresourcelocat, self.restoretargetlocat))
         self.thread.start()
@@ -913,6 +988,7 @@ class init():
             self.beginrestore.set_sensitive(True)
         
     def restore_home_toggled(self, button):
+        #Same thing as with backup_home_toggled, etc.
         self.check_if_restore_possible()
         
     def restore_docs_toggled(self, button):
@@ -943,6 +1019,7 @@ class init():
     def run(self):
         self.win.set_auto_startup_notification(True)
         self.win.show_all()
+        #Hide the hidden-by-default items and immediately check all the available boxes in Backup Data depending on what exists and what doesn't in ~
         self.check_checkboxes_backup(os.path.expanduser("~"))
         self.toggle_bg_options(False)
         self.builder.get_object('OverwritingNotice').set_visible(False)
