@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd /usr/share/feren-transfer-tool/
+/usr/share/feren-transfer-tool/transfer-tool.py
+exit 0

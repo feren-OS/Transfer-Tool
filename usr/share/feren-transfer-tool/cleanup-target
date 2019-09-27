@@ -1,0 +1,19 @@
+#!/bin/bash
+#Remove some Windows-only files that are useless in Feren OS from the backed up contents
+
+echo "$@"
+olddir="$(pwd)"
+if [ -z "$1" ] || [ ! -d "$1" ]; then
+    exit 1
+fi
+
+cd "$1"
+find ~/* -name "*.lnk" -type f -delete
+find ~/* -name "Thumbs.db" -type f -delete
+find ~/* -name "desktop.ini" -type f -delete
+rm -f "$1/ntuser.dat.LOG"*
+
+if [ "$2" = "--clear-lost-symlinks" ]; then
+    find ~/* -xtype l -delete
+fi
+cd "$olddir"

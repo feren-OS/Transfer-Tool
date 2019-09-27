@@ -1,0 +1,34 @@
+#!/bin/bash
+#Copy background - currently only supports Windows
+
+echo "$@"
+if [ -z "$1" ] || [ ! -d "$1" ] || [ -z "$2" ] || [ ! -d "$2" ]; then
+    exit 1
+fi
+
+if [ ! "$3" = "--restore" ]; then
+    olddir="$(pwd)"
+    cd "$1"
+    filescount=2
+    if [ -f "TransferToolBackground" ]; then
+        while [ -f "TransferToolBackground ($filescount)" ]; do
+            filescount=$(($filescount+1))
+        done
+        mv -f "TransferToolBackground" "TransferToolBackground ($filescount)"
+    fi
+    cd "$olddir"
+    cp "$2/AppData/Roaming/Microsoft/Windows/Themes/TranscodedWallpaper" "$1/TransferToolBackground" | cp "$2/AppData/Roaming/Microsoft/Windows/Themes/TranscodedWallpaper.jpg" "$1/TransferToolBackground"
+else
+    cp "$2/TransferToolBackground" "$1/TransferToolBackground"
+    dbus-send --session --dest=org.kde.plasmashell --type=method_call /PlasmaShell org.kde.PlasmaShell.evaluateScript 'string:
+var Desktops = desktops();                                                                                                                       
+for (i=0;i<Desktops.length;i++) {
+        d = Desktops[i];
+        d.wallpaperPlugin = "org.kde.image";
+        d.currentConfigGroup = Array("Wallpaper",
+                                    "org.kde.image",
+                                    "General");
+        d.writeConfig("Image", "file://'"$1/TransferToolBackground"'");
+}'
+    gsettings set org.cinnamon.desktop.background picture-uri "file://$1/TransferToolBackground"
+fi

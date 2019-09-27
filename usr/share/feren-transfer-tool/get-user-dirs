@@ -1,0 +1,24 @@
+#!/bin/bash
+
+while read p; do if [[ $p == *"="* ]] && [[ ! $p == "#"* ]]; then
+    export $p
+fi; done <~/.config/user-dirs.dirs
+
+if [ "$1" = "De" ]; then
+    echo "$XDG_DESKTOP_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "Dow" ]; then
+    echo "$XDG_DOWNLOAD_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "T" ]; then
+    echo "$XDG_TEMPLATES_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "Pu" ]; then
+    echo "$XDG_PUBLICSHARE_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "Doc" ]; then
+    echo "$XDG_DOCUMENTS_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "M" ]; then
+    echo "$XDG_MUSIC_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "Pi" ]; then
+    echo "$XDG_PICTURES_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+elif [ "$1" = "V" ]; then
+    echo "$XDG_VIDEOS_DIR" | sed 's%$HOME/%%g' | sed 's/"//g'
+fi
+exit 0

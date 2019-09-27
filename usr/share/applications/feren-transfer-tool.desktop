@@ -1,0 +1,8 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Comment=Transfer Files (and some Settings) between multiple Operating Systems
+Terminal=false
+Name=Transfer Tool
+Exec=feren-transfer-tool
+Type=Application
+Icon=feren-transfer-tool

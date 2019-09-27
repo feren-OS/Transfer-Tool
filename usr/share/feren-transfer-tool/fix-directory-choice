@@ -1,0 +1,48 @@
+#!/bin/bash
+#Fix copy source directory
+
+if [ -z "$1" ] || [ ! -d "$1" ]; then
+    exit 1
+fi
+
+if mountpoint -q "$1"; then
+    if [[ -d "$1/Users" ]]; then
+        pathsuffix="Users"
+    elif [[ -d "$1/Documents and Settings" ]]; then
+        pathsuffix="Documents and Settings"
+    else
+        pathsuffix=""
+    fi
+    if [ -d "$1/$pathsuffix" ] && [ -d "$1/Windows" ]; then
+        winconfirmed="1"
+    elif [ -d "$1/$pathsuffix" ] && [ -d "$1/WINDOWS" ]; then
+        winconfirmed="1"
+    fi
+    if [ "$winconfirmed" = "1" ]; then
+        users=()
+        for folder in "$1/$pathsuffix/"*; do
+            if [ -d "$folder" ]; then
+                users+=("${folder##*/}")
+            fi
+        done
+        user=$(zenity --list \
+            --title="Feren OS Transfer Tool" \
+            --text="We have found multiple users in $1.
+Please choose a user to backup files from:" \
+            --column="Users" \
+                "${users[@]}")
+        if [ ! -z "$user" ]; then
+            echo "$1/$pathsuffix/$user"
+            exit 0
+        else
+            echo "$1"
+            exit 0
+        fi
+    else
+        echo "$1"
+        exit 0
+    fi
+else
+    echo "$1"
+    exit 0
+fi
