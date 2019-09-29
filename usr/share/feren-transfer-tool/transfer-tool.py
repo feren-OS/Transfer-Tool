@@ -554,7 +554,7 @@ class init():
                 elif not str(folder) in folderstoscaninsource:
                     #The last exclusion is if it's not already added to the list
                     folderstoscaninsource.append(str(source+"/"+folder))
-            elif os.path.isfile(source+"/"+folder) and not folder.startswith(".") and togglehome == True and not ((folder.startswith("NTUSER.DAT") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or (folder.startswith("ntuser.dat") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or folder == "ntuser.dat" or folder == "ntuser.ini"):
+            elif os.path.isfile(source+"/"+folder) and not folder.startswith(".") and togglehome == True and not ((folder.startswith("NTUSER.DAT") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or (folder.startswith("ntuser.dat") and (folder.endswith(".blf") or folder.endswith(".regtrans-ms"))) or folder == "ntuser.dat" or folder == "ntuser.ini" or folder == "NTUSER.DAT"):
                 #If it's a file, however, isn't hidden and isn't a Windows System File, add it to the list of files in the source folder to copy over
                 filesinsource.append(folder)
         if togglepfp == True:
