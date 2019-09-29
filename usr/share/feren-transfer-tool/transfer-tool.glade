@@ -8,7 +8,7 @@
     <property name="icon_name">feren-transfer-tool</property>
     <property name="type_hint">dialog</property>
     <property name="program_name">Feren OS Transfer Tool</property>
-    <property name="version">2.0.0</property>
+    <property name="version">2.0.1</property>
     <property name="copyright" translatable="yes">Copyright © 2019 Feren OS Team</property>
     <property name="comments" translatable="yes">A simple utility for transferring files (and some settings) to Feren OS with support for transferring data from Windows.</property>
     <property name="website">https://github.com/Feren-OS/Transfer-Tool</property>

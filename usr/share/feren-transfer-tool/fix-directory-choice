@@ -21,7 +21,7 @@ if mountpoint -q "$1"; then
     if [ "$winconfirmed" = "1" ]; then
         users=()
         for folder in "$1/$pathsuffix/"*; do
-            if [ -d "$folder" ]; then
+            if [ -d "$folder" ] && [ ! "$folder" = "All Users" ] && [ ! "$folder" = "Default" ] && [ ! "$folder" = "Default User" ]; then
                 users+=("${folder##*/}")
             fi
         done
